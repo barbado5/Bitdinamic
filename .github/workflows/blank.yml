@@ -1,0 +1,144 @@
+# This is a basic workflow to help you get started with Actionyour-repository/
+│
+└── .github/
+    └── workflows/
+        └── canton-devkit.ymls
+
+name: CI.github/workflows/canton-devkit.yml
+
+# Controls when the workflow will run
+on:
+name: Canton DevKit CCTools Campaign
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: canton-cctools-demo
+  cancel-in-progress: false
+
+jobs:
+  canton-devkit:
+    name: Run Canton DevKit Demo
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+
+    env:
+      VERSION: 0.18.2-cctools.1
+      INSTANCE: cctools-demo
+
+    steps:
+      # 1. Display runner information
+      - name: Runner Information
+        run: |
+          echo "Starting Canton DevKit"
+          uname -a
+          df -h
+          free -h
+
+      # 2. Verify Docker
+      - name: Check Docker
+        run: |
+          docker version
+          docker compose version
+          docker info
+
+      # 3. Install pinned Canton DevKit
+      - name: Install Canton DevKit
+        run: |
+          curl -fsSL \
+            https://raw.githubusercontent.com/bitdynamics-ab/canton-devkit/v0.18.2-cctools.1/install.sh \
+            | VERSION=${VERSION} sh
+
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      # 4. Verify installation
+      - name: Verify Canton DevKit
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+
+          canton-devkit version
+
+          canton-devkit version | grep -F \
+            "v${VERSION}"
+
+      # 5. Check LocalNet prerequisites
+      - name: LocalNet Doctor
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+
+          canton-devkit localnet doctor
+
+      # 6. Start Canton LocalNet
+      - name: Start LocalNet
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+
+          canton-devkit localnet up "$INSTANCE"
+
+      # 7. Check LocalNet status
+      - name: Check LocalNet Status
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+
+          canton-devkit localnet status "$INSTANCE"
+
+      # 8. Run token demo
+      - name: Run Token Demo
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+
+          canton-devkit localnet token demo \
+            --instance "$INSTANCE"
+
+      # 9. Check token balances
+      - name: Check Token Balances
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+
+          canton-devkit localnet token balances \
+            --instance "$INSTANCE"
+
+      # 10. Cleanup LocalNet
+      - name: Cleanup LocalNet
+        if: always()
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+
+          if command -v canton-devkit >/dev/null 2>&1; then
+            canton-devkit localnet down "$INSTANCE" || true
+          fi
+
+  # Triggers the workflow on push or pull request events but only for the "main" branch
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v4
+
+      # Runs a single command using the runners shell
+      - name: Run a one-line script
+        run: echo Hello, world!
+
+      # Runs a set of commands using the runners shell
+      - name: Run a multi-line script
+        run: |
+          echo Add other actions to build,
+          echo test, and deploy your project.
