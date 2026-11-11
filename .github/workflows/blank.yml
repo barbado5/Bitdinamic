@@ -4,7 +4,7 @@
     └── workflows/
         └── canton-devkit.ymls
 
-name: CI.github/workflows/canton-devkit.yml
+name: .github/workflows/canton-devkit.yml
 
 # Controls when the workflow will run
 on:
